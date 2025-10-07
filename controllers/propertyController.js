@@ -1,4 +1,3 @@
-
 import Property from "../models/Property.js";
 import User from "../models/User.js";
 
@@ -26,7 +25,6 @@ export const addProperty = async (req, res) => {
       images,
     } = req.body;
 
-    // Validation
     if (!title || !price || !contact || !location || !category || !state || !district) {
       return res.status(400).json({
         error: "Missing required fields: title, price, contact, location, category, state, district",
@@ -52,26 +50,27 @@ export const addProperty = async (req, res) => {
       interior: interior || "",
       construction: construction || "",
       images: images || [],
-      owner: req.user._id, // from protect middleware
+      owner: req.user._id,
     });
 
     await property.save();
-
-    res.status(201).json({
-      success: true,
-      message: "Property added successfully",
-      property,
-    });
+    res.status(201).json({ success: true, message: "Property added successfully", property });
   } catch (err) {
-    console.error("Add property error:", err.message);
     res.status(500).json({ error: "Server error: " + err.message });
   }
 };
 
-// 📌 Get all properties
+// 📌 Get all or filtered properties
 export const getProperties = async (req, res) => {
   try {
-    const properties = await Property.find().populate("owner", "name phone");
+    const { type } = req.query; // ?type=Godown
+    const query = {};
+
+    if (type && type !== "All") {
+      query.category = { $regex: new RegExp(`^${type}$`, "i") }; // ✅ Case-insensitive match
+    }
+
+    const properties = await Property.find(query).populate("owner", "name phone");
     res.json(properties);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -145,41 +144,15 @@ export const getMyProperties = async (req, res) => {
 export const updateProperty = async (req, res) => {
   try {
     const property = await Property.findById(req.params.id);
-    if (!property) {
-      return res.status(404).json({ error: "Property not found" });
-    }
-
+    if (!property) return res.status(404).json({ error: "Property not found" });
     if (property.owner.toString() !== req.user._id.toString()) {
-      return res.status(401).json({ error: "Not authorized to update this property" });
+      return res.status(401).json({ error: "Not authorized" });
     }
 
-    // Update only provided fields
-    Object.assign(property, {
-      category: req.body.category ?? property.category,
-      title: req.body.title ?? property.title,
-      price: req.body.price ?? property.price,
-      contact: req.body.contact ?? property.contact,
-      location: req.body.location ?? property.location,
-      mapLocation: req.body.mapLocation ?? property.mapLocation,
-      state: req.body.state ?? property.state,
-      district: req.body.district ?? property.district,
-      subDistrict: req.body.subDistrict ?? property.subDistrict,
-      landmark: req.body.landmark ?? property.landmark,
-      sqft: req.body.sqft ?? property.sqft,
-      bedrooms: req.body.bedrooms ?? property.bedrooms,
-      bathrooms: req.body.bathrooms ?? property.bathrooms,
-      kitchen: req.body.kitchen ?? property.kitchen,
-      amenities: req.body.amenities ?? property.amenities,
-      interior: req.body.interior ?? property.interior,
-      construction: req.body.construction ?? property.construction,
-      images: req.body.images ?? property.images,
-    });
-
+    Object.assign(property, req.body);
     await property.save();
-
     res.json({ success: true, property });
   } catch (err) {
-    console.error("Update Property Error:", err.message);
     res.status(500).json({ error: err.message });
   }
 };
@@ -188,10 +161,7 @@ export const updateProperty = async (req, res) => {
 export const deleteProperty = async (req, res) => {
   try {
     const property = await Property.findById(req.params.id);
-    if (!property) {
-      return res.status(404).json({ message: "Property not found" });
-    }
-
+    if (!property) return res.status(404).json({ message: "Property not found" });
     if (property.owner.toString() !== req.user._id.toString()) {
       return res.status(401).json({ message: "Not authorized" });
     }
@@ -199,10 +169,214 @@ export const deleteProperty = async (req, res) => {
     await property.deleteOne();
     res.json({ message: "Property deleted successfully" });
   } catch (err) {
-    console.error("Delete Property Error:", err.message);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: err.message });
   }
 };
+
+// import Property from "../models/Property.js";
+// import User from "../models/User.js";
+
+// // ➕ Add new property
+// export const addProperty = async (req, res) => {
+//   try {
+//     const {
+//       category,
+//       title,
+//       price,
+//       contact,
+//       location,
+//       mapLocation,
+//       state,
+//       district,
+//       subDistrict,
+//       landmark,
+//       sqft,
+//       bedrooms,
+//       bathrooms,
+//       kitchen,
+//       amenities,
+//       interior,
+//       construction,
+//       images,
+//     } = req.body;
+
+//     // Validation
+//     if (!title || !price || !contact || !location || !category || !state || !district) {
+//       return res.status(400).json({
+//         error: "Missing required fields: title, price, contact, location, category, state, district",
+//       });
+//     }
+
+//     const property = new Property({
+//       category,
+//       title,
+//       price,
+//       contact,
+//       location,
+//       mapLocation: mapLocation || "",
+//       state,
+//       district,
+//       subDistrict: subDistrict || "",
+//       landmark: landmark || "",
+//       sqft: sqft || null,
+//       bedrooms: bedrooms || "1",
+//       bathrooms: bathrooms || "1",
+//       kitchen: kitchen || "Yes",
+//       amenities: amenities || "",
+//       interior: interior || "",
+//       construction: construction || "",
+//       images: images || [],
+//       owner: req.user._id, // from protect middleware
+//     });
+
+//     await property.save();
+
+//     res.status(201).json({
+//       success: true,
+//       message: "Property added successfully",
+//       property,
+//     });
+//   } catch (err) {
+//     console.error("Add property error:", err.message);
+//     res.status(500).json({ error: "Server error: " + err.message });
+//   }
+// };
+
+// // 📌 Get all properties
+// export const getProperties = async (req, res) => {
+//   try {
+//     const properties = await Property.find().populate("owner", "name phone");
+//     res.json(properties);
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// };
+
+// // 📌 Get property by ID
+// export const getPropertyById = async (req, res) => {
+//   try {
+//     const property = await Property.findById(req.params.id).populate("owner", "name phone");
+//     if (!property) return res.status(404).json({ error: "Not found" });
+//     res.json(property);
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// };
+
+// // ⭐ Save property
+// export const saveProperty = async (req, res) => {
+//   try {
+//     const user = await User.findById(req.user._id);
+//     if (!user) return res.status(404).json({ message: "User not found" });
+
+//     if (!user.savedProperties.includes(req.params.id)) {
+//       user.savedProperties.push(req.params.id);
+//       await user.save();
+//     }
+//     res.json({ message: "Saved" });
+//   } catch (err) {
+//     res.status(500).json({ message: err.message });
+//   }
+// };
+
+// // ❌ Unsave property
+// export const unsaveProperty = async (req, res) => {
+//   try {
+//     const user = await User.findById(req.user._id);
+//     if (!user) return res.status(404).json({ message: "User not found" });
+
+//     user.savedProperties = user.savedProperties.filter(
+//       (p) => p.toString() !== req.params.id
+//     );
+//     await user.save();
+//     res.json({ message: "Removed from saved" });
+//   } catch (err) {
+//     res.status(500).json({ message: err.message });
+//   }
+// };
+
+// // 📌 Get saved properties
+// export const getSavedProperties = async (req, res) => {
+//   try {
+//     const user = await User.findById(req.user._id).populate("savedProperties");
+//     res.json(user.savedProperties);
+//   } catch (err) {
+//     res.status(500).json({ message: err.message });
+//   }
+// };
+
+// // 👤 Get my properties
+// export const getMyProperties = async (req, res) => {
+//   try {
+//     const properties = await Property.find({ owner: req.user._id }).populate("owner", "name phone");
+//     res.json(properties);
+//   } catch (err) {
+//     res.status(500).json({ message: err.message });
+//   }
+// };
+
+// // ✏️ Update property
+// export const updateProperty = async (req, res) => {
+//   try {
+//     const property = await Property.findById(req.params.id);
+//     if (!property) {
+//       return res.status(404).json({ error: "Property not found" });
+//     }
+
+//     if (property.owner.toString() !== req.user._id.toString()) {
+//       return res.status(401).json({ error: "Not authorized to update this property" });
+//     }
+
+//     // Update only provided fields
+//     Object.assign(property, {
+//       category: req.body.category ?? property.category,
+//       title: req.body.title ?? property.title,
+//       price: req.body.price ?? property.price,
+//       contact: req.body.contact ?? property.contact,
+//       location: req.body.location ?? property.location,
+//       mapLocation: req.body.mapLocation ?? property.mapLocation,
+//       state: req.body.state ?? property.state,
+//       district: req.body.district ?? property.district,
+//       subDistrict: req.body.subDistrict ?? property.subDistrict,
+//       landmark: req.body.landmark ?? property.landmark,
+//       sqft: req.body.sqft ?? property.sqft,
+//       bedrooms: req.body.bedrooms ?? property.bedrooms,
+//       bathrooms: req.body.bathrooms ?? property.bathrooms,
+//       kitchen: req.body.kitchen ?? property.kitchen,
+//       amenities: req.body.amenities ?? property.amenities,
+//       interior: req.body.interior ?? property.interior,
+//       construction: req.body.construction ?? property.construction,
+//       images: req.body.images ?? property.images,
+//     });
+
+//     await property.save();
+
+//     res.json({ success: true, property });
+//   } catch (err) {
+//     console.error("Update Property Error:", err.message);
+//     res.status(500).json({ error: err.message });
+//   }
+// };
+
+// // ❌ Delete property
+// export const deleteProperty = async (req, res) => {
+//   try {
+//     const property = await Property.findById(req.params.id);
+//     if (!property) {
+//       return res.status(404).json({ message: "Property not found" });
+//     }
+
+//     if (property.owner.toString() !== req.user._id.toString()) {
+//       return res.status(401).json({ message: "Not authorized" });
+//     }
+
+//     await property.deleteOne();
+//     res.json({ message: "Property deleted successfully" });
+//   } catch (err) {
+//     console.error("Delete Property Error:", err.message);
+//     res.status(500).json({ message: "Server error" });
+//   }
+// };
 
 // import Property from "../models/Property.js";
 // import User from "../models/User.js";
