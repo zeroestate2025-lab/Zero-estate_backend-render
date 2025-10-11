@@ -1,7 +1,6 @@
 import Property from "../models/Property.js";
 import User from "../models/User.js";
 
-// ➕ Add new property
 export const addProperty = async (req, res) => {
   try {
     const {
@@ -27,7 +26,8 @@ export const addProperty = async (req, res) => {
 
     if (!title || !price || !contact || !location || !category || !state || !district) {
       return res.status(400).json({
-        error: "Missing required fields: title, price, contact, location, category, state, district",
+        error:
+          "Missing required fields: title, price, contact, location, category, state, district",
       });
     }
 
@@ -54,21 +54,55 @@ export const addProperty = async (req, res) => {
     });
 
     await property.save();
-    res.status(201).json({ success: true, message: "Property added successfully", property });
+    res.status(201).json({ success: true, message: "Property added", property });
   } catch (err) {
-    res.status(500).json({ error: "Server error: " + err.message });
+    res.status(500).json({ error: err.message });
   }
 };
 
 // 📌 Get all or filtered properties
 export const getProperties = async (req, res) => {
   try {
-    const { type } = req.query; // ?type=Godown
+    const {
+      category,
+      minPrice,
+      maxPrice,
+      minSize,
+      maxSize,
+      state,
+      district,
+      subDistrict,
+      bedrooms,
+      bathrooms,
+      kitchen,
+    } = req.query;
+
     const query = {};
 
-    if (type && type !== "All") {
-      query.category = { $regex: new RegExp(`^${type}$`, "i") }; // ✅ Case-insensitive match
+    if (category && category !== "All") {
+      query.category = { $regex: new RegExp(category, "i") };
     }
+
+    if (state) query.state = state;
+    if (district) query.district = district;
+    if (subDistrict) query.subDistrict = subDistrict;
+
+    // ✅ Numeric range filters
+    if (minPrice || maxPrice)
+      query.price = {
+        ...(minPrice ? { $gte: parseInt(minPrice) } : {}),
+        ...(maxPrice ? { $lte: parseInt(maxPrice) } : {}),
+      };
+
+    if (minSize || maxSize)
+      query.sqft = {
+        ...(minSize ? { $gte: parseInt(minSize) } : {}),
+        ...(maxSize ? { $lte: parseInt(maxSize) } : {}),
+      };
+
+    if (bedrooms) query.bedrooms = bedrooms;
+    if (bathrooms) query.bathrooms = bathrooms;
+    if (kitchen) query.kitchen = { $regex: new RegExp(kitchen, "i") };
 
     const properties = await Property.find(query).populate("owner", "name phone");
     res.json(properties);
@@ -76,6 +110,81 @@ export const getProperties = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+// // ➕ Add new property
+// export const addProperty = async (req, res) => {
+//   try {
+//     const {
+//       category,
+//       title,
+//       price,
+//       contact,
+//       location,
+//       mapLocation,
+//       state,
+//       district,
+//       subDistrict,
+//       landmark,
+//       sqft,
+//       bedrooms,
+//       bathrooms,
+//       kitchen,
+//       amenities,
+//       interior,
+//       construction,
+//       images,
+//     } = req.body;
+
+//     if (!title || !price || !contact || !location || !category || !state || !district) {
+//       return res.status(400).json({
+//         error: "Missing required fields: title, price, contact, location, category, state, district",
+//       });
+//     }
+
+//     const property = new Property({
+//       category,
+//       title,
+//       price,
+//       contact,
+//       location,
+//       mapLocation: mapLocation || "",
+//       state,
+//       district,
+//       subDistrict: subDistrict || "",
+//       landmark: landmark || "",
+//       sqft: sqft || null,
+//       bedrooms: bedrooms || "1",
+//       bathrooms: bathrooms || "1",
+//       kitchen: kitchen || "Yes",
+//       amenities: amenities || "",
+//       interior: interior || "",
+//       construction: construction || "",
+//       images: images || [],
+//       owner: req.user._id,
+//     });
+
+//     await property.save();
+//     res.status(201).json({ success: true, message: "Property added successfully", property });
+//   } catch (err) {
+//     res.status(500).json({ error: "Server error: " + err.message });
+//   }
+// };
+
+// // 📌 Get all or filtered properties
+// export const getProperties = async (req, res) => {
+//   try {
+//     const { type } = req.query; // ?type=Godown
+//     const query = {};
+
+//     if (type && type !== "All") {
+//       query.category = { $regex: new RegExp(`^${type}$`, "i") }; // ✅ Case-insensitive match
+//     }
+
+//     const properties = await Property.find(query).populate("owner", "name phone");
+//     res.json(properties);
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// };
 
 // 📌 Get property by ID
 export const getPropertyById = async (req, res) => {
