@@ -189,6 +189,40 @@ export const verifyOtp = async (req, res) => {
   }
 };
 
+
+// --------------------------------------------------
+// 🔹 Update User Name (Protected Route)
+// --------------------------------------------------
+export const updateUserName = async (req, res) => {
+  try {
+    const { name } = req.body;
+    if (!name || name.trim() === "") {
+      return res.status(400).json({ message: "Name is required" });
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    user.name = name.trim();
+    await user.save();
+
+    res.json({
+      success: true,
+      message: "Name updated successfully",
+      user: {
+        id: user._id,
+        name: user.name,
+        phone: user.phone,
+      },
+    });
+  } catch (err) {
+    console.error("Update Name Error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+
+
 // // controllers/authController.js
 // import User from "../models/User.js";
 // import jwt from "jsonwebtoken";

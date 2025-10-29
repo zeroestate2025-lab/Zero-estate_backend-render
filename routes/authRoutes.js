@@ -4,6 +4,7 @@ import {
   quickLogin,
   getMe,
   logoutUser,
+  updateUserName,
 } from "../controllers/authController.js";
 import { protect } from "../middleware/authMiddleware.js";
 
@@ -14,6 +15,9 @@ router.post("/register", registerOrLogin); // combined signup/login
 router.post("/quick-login", quickLogin);
 router.get("/me", protect, getMe);
 router.post("/logout", protect, logoutUser);
+
+router.put("/update-name", protect, updateUserName);
+
 
 export default router;
 

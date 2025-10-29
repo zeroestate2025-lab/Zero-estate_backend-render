@@ -13,6 +13,12 @@ app.use(cors());
 app.use(express.json({ limit: "100mb" }));
 app.use(express.urlencoded({ limit: "100mb", extended: true }));
 
+// Serve uploaded files statically from /uploads
+// NOTE: we previously served /uploads when files were written to disk.
+// Now images are stored in MongoDB as base64 strings, so static serving of
+// an uploads folder is not required. If you later store files on disk or S3,
+// add appropriate static middleware or CDN links.
+
 // ✅ Connect MongoDB
 mongoose
   .connect(process.env.MONGO_URI)
