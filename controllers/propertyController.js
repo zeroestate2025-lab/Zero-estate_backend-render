@@ -5,11 +5,7 @@ import User from "../models/User.js";
 // --------------------------------------------------
 // 🔹 Add Property (includes propertyPreference + Base64 images)
 // --------------------------------------------------
-
 export const addProperty = async (req, res) => {
-  console.log("🔥 req.body.propertyPreference:", req.body.propertyPreference);
- console.log("🧩 Schema fields:", Object.keys(Property.schema.paths));
-
   try {
     const {
       category,
@@ -18,8 +14,17 @@ export const addProperty = async (req, res) => {
       price,
       contact,
       location,
+      mapLocation,
       state,
       district,
+      landmark,
+      propertySize,
+      propertyUnit,
+      bedrooms,
+      bathrooms,
+      kitchen,
+      amenities,        // ✅ SAME FIELD
+      construction,
       images,
     } = req.body;
 
@@ -37,35 +42,99 @@ export const addProperty = async (req, res) => {
     }
 
     const newProperty = new Property({
-      ...req.body,
-      owner: req.user._id,
+      category,
+      propertyPreference,
+      title,
+      price,           // ✅ string like "2 crore"
+      contact,
+      location,
+      mapLocation,
+      state,
+      district,
+      landmark,
+      propertySize,
+      propertyUnit,
+      bedrooms,
+      bathrooms,
+      kitchen,
+      amenities,       // ✅ SAME FIELD
+      construction,
       images,
+      owner: req.user._id,
     });
 
     const saved = await newProperty.save();
 
-  
     res.status(201).json({
       message: "Property added successfully",
-      property: {
-        id: saved._id,
-        title: saved.title,
-        price: saved.price,
-        location: saved.location,
-        state: saved.state,
-        district: saved.district,
-        category: saved.category,
-        propertyPreference: saved.propertyPreference,
-      },
-      consoleLog: `💾 Saved property: ${saved}`, // 👈 debug log
+      property: saved,
     });
   } catch (error) {
-    console.error("Error adding property:", error);
+    console.error("Add Property Error:", error);
     res.status(500).json({ message: "Server error" });
   }
-  console.log("Schema keys:", Object.keys(Property.schema.paths));
-
 };
+
+// export const addProperty = async (req, res) => {
+//   console.log("🔥 req.body.propertyPreference:", req.body.propertyPreference);
+//  console.log("🧩 Schema fields:", Object.keys(Property.schema.paths));
+
+//   try {
+//     const {
+//       category,
+//       propertyPreference,
+//       title,
+//       price,
+//       contact,
+//       location,
+//       state,
+//       district,
+//       images,
+//     } = req.body;
+
+//     if (
+//       !category ||
+//       !propertyPreference ||
+//       !title ||
+//       !price ||
+//       !contact ||
+//       !location ||
+//       !state ||
+//       !district
+//     ) {
+//       return res.status(400).json({ message: "Required fields missing" });
+//     }
+
+//     const newProperty = new Property({
+//       ...req.body,
+//       owner: req.user._id,
+//       images,
+//     });
+
+//     const saved = await newProperty.save();
+
+  
+//     res.status(201).json({
+//       message: "Property added successfully",
+//       property: {
+//         id: saved._id,
+//         title: saved.title,
+//         price: saved.price,
+//         location: saved.location,
+//         state: saved.state,
+//         district: saved.district,
+//         category: saved.category,
+//         propertyPreference: saved.propertyPreference,
+//       },
+//       consoleLog: `💾 Saved property: ${saved}`, // 👈 debug log
+//     });
+//   } catch (error) {
+//     console.error("Error adding property:", error);
+//     res.status(500).json({ message: "Server error" });
+//   }
+//   console.log("Schema keys:", Object.keys(Property.schema.paths));
+
+// };
 
 // --------------------------------------------------
 // 🔹 Get All Properties (Lightweight List with Filter Support)
@@ -128,18 +197,69 @@ export const getPropertyById = async (req, res) => {
 
 // --------------------------------------------------
 // 🔹 Update Property (including preference)
-// --------------------------------------------------
+// // --------------------------------------------------
+// export const updateProperty = async (req, res) => {
+//   try {
+//     const property = await Property.findById(req.params.id);
+//     if (!property)
+//       return res.status(404).json({ message: "Property not found" });
+
+//     if (property.owner.toString() !== req.user._id.toString()) {
+//       return res.status(403).json({ message: "Not authorized" });
+//     }
+
+//     Object.assign(property, req.body);
+//     const updated = await property.save();
+
+//     res.json({
+//       message: "Property updated successfully",
+//       property: updated,
+//     });
+//   } catch (error) {
+//     console.error("Update Property Error:", error);
+//     res.status(500).json({ message: "Server error" });
+//   }
+//   console.log("Update Property Request Body:", req.body);
+//   console.log("Property ID:", req.params.id);
+// };
 export const updateProperty = async (req, res) => {
   try {
     const property = await Property.findById(req.params.id);
-    if (!property)
+    if (!property) {
       return res.status(404).json({ message: "Property not found" });
+    }
 
     if (property.owner.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: "Not authorized" });
     }
 
-    Object.assign(property, req.body);
+    const allowedFields = [
+      "category",
+      "propertyPreference",
+      "title",
+      "price",
+      "contact",
+      "location",
+      "mapLocation",
+      "state",
+      "district",
+      "landmark",
+      "propertySize",
+      "propertyUnit",
+      "bedrooms",
+      "bathrooms",
+      "kitchen",
+      "amenities",      // ✅ SAME FIELD
+      "construction",
+      "images",
+    ];
+
+    allowedFields.forEach((field) => {
+      if (req.body[field] !== undefined) {
+        property[field] = req.body[field];
+      }
+    });
+
     const updated = await property.save();
 
     res.json({
@@ -150,8 +270,6 @@ export const updateProperty = async (req, res) => {
     console.error("Update Property Error:", error);
     res.status(500).json({ message: "Server error" });
   }
-  console.log("Update Property Request Body:", req.body);
-  console.log("Property ID:", req.params.id);
 };
 
 // --------------------------------------------------
