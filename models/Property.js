@@ -42,7 +42,7 @@ const propertySchema = new mongoose.Schema(
       enum: ["sqft", "cent", "acre"],
       default: "sqft",
     },
-
+ 
     bedrooms: { type: String, default: "0" },
     bathrooms: { type: String, default: "0" },
     kitchen: { type: String, default: "0" },
