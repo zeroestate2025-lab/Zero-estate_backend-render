@@ -189,26 +189,38 @@ export const verifyOtp = async (req, res) => {
   }
 };
 
-
 // --------------------------------------------------
-// 🔹 Update User Name (Protected Route)
+// 🔹 Update User Profile (Protected Route)
 // --------------------------------------------------
-export const updateUserName = async (req, res) => {
+export const updateUserProfile = async (req, res) => {
   try {
-    const { name } = req.body;
+    const { name, phone } = req.body;
+
     if (!name || name.trim() === "") {
       return res.status(400).json({ message: "Name is required" });
     }
 
+    if (!phone || phone.trim() === "") {
+      return res.status(400).json({ message: "Phone number is required" });
+    }
+
+    // Optional: Validate phone length
+    if (phone.length !== 10) {
+      return res.status(400).json({ message: "Phone must be 10 digits" });
+    }
+
     const user = await User.findById(req.user._id);
-    if (!user) return res.status(404).json({ message: "User not found" });
+    if (!user)
+      return res.status(404).json({ message: "User not found" });
 
     user.name = name.trim();
+    user.phone = phone.trim();
+
     await user.save();
 
     res.json({
       success: true,
-      message: "Name updated successfully",
+      message: "Profile updated successfully",
       user: {
         id: user._id,
         name: user.name,
@@ -216,8 +228,39 @@ export const updateUserName = async (req, res) => {
       },
     });
   } catch (err) {
-    console.error("Update Name Error:", err);
+    console.error("Update Profile Error:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
+
+// // --------------------------------------------------
+// // 🔹 Update User Name (Protected Route)
+// // --------------------------------------------------
+// export const updateUserName = async (req, res) => {
+//   try {
+//     const { name } = req.body;
+//     if (!name || name.trim() === "") {
+//       return res.status(400).json({ message: "Name is required" });
+//     }
+
+//     const user = await User.findById(req.user._id);
+//     if (!user) return res.status(404).json({ message: "User not found" });
+
+//     user.name = name.trim();
+//     await user.save();
+
+//     res.json({
+//       success: true,
+//       message: "Name updated successfully",
+//       user: {
+//         id: user._id,
+//         name: user.name,
+//         phone: user.phone,
+//       },
+//     });
+//   } catch (err) {
+//     console.error("Update Name Error:", err);
+//     res.status(500).json({ message: "Server error" });
+//   }
+// };
 
