@@ -194,7 +194,7 @@ export const verifyOtp = async (req, res) => {
 // --------------------------------------------------
 export const updateUserProfile = async (req, res) => {
   try {
-    const { name, phone } = req.body;
+    let { name, phone } = req.body;
 
     if (!name || name.trim() === "") {
       return res.status(400).json({ message: "Name is required" });
@@ -204,17 +204,28 @@ export const updateUserProfile = async (req, res) => {
       return res.status(400).json({ message: "Phone number is required" });
     }
 
-    // Optional: Validate phone length
+    // ✅ Normalize phone (VERY IMPORTANT)
+    phone = phone.replace(/\D/g, "");
+
     if (phone.length !== 10) {
       return res.status(400).json({ message: "Phone must be 10 digits" });
     }
 
     const user = await User.findById(req.user._id);
-    if (!user)
+    if (!user) {
       return res.status(404).json({ message: "User not found" });
+    }
+
+    // ✅ Check duplicate phone ONLY if changing number
+    if (phone !== user.phone) {
+      const phoneExists = await User.findOne({ phone });
+      if (phoneExists) {
+        return res.status(400).json({ message: "Phone already in use" });
+      }
+    }
 
     user.name = name.trim();
-    user.phone = phone.trim();
+    user.phone = phone;
 
     await user.save();
 
@@ -229,7 +240,7 @@ export const updateUserProfile = async (req, res) => {
     });
   } catch (err) {
     console.error("Update Profile Error:", err);
-    res.status(500).json({ message: "Server error" });
+    res.status(400).json({ message: err.message });
   }
 };
 
